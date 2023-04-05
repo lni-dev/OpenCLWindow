@@ -22,8 +22,8 @@
 namespace linusdev {
     class MouseListener {
     public:
-        virtual void onMouseCursor(double xpos, double ypos);
-        virtual void onMouseButton(int button, int action, int mods);
+        virtual void onMouseCursor(double xpos, double ypos) {};
+        virtual void onMouseButton(int button, int action, int mods) {};
     };
 }
 

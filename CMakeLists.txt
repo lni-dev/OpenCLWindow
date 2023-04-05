@@ -14,7 +14,6 @@ add_library(${PROJECT_NAME} STATIC
 set_target_properties(${PROJECT_NAME} PROPERTIES
         VERSION ${PROJECT_VERSION}
         SOVERSION 1
-        PUBLIC_HEADER include/OpenClWindow.h
         )
 
 find_package(OpenCL REQUIRED)

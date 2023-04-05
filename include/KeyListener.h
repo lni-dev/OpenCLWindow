@@ -22,7 +22,7 @@
 namespace linusdev {
     class KeyListener {
     public:
-        virtual void onKey(int key, int scancode, int action, int mods);
+        virtual void onKey(int key, int scancode, int action, int mods) {};
 
     };
 }
