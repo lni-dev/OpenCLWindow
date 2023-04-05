@@ -1,2 +1,2 @@
 # OpenCLWindow
- Libary to create a Window for Rendering with OpenCL
+ Library to create a Window for Rendering with OpenCL
