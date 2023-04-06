@@ -43,6 +43,11 @@ namespace linusdev {
         cl::Kernel *kernel = nullptr;
         cl::BufferRenderGL *sharedRenderBuffer = nullptr;
 
+        const std::vector <cl::Memory>* sharedGLObjects = nullptr;
+
+        int frameBufferWidth;
+        int frameBufferHeight;
+
         void initOpenCL();
         bool openCLInit = false;
 
@@ -81,8 +86,18 @@ namespace linusdev {
 
         void show();
 
+        bool checkIfWindowShouldClose();
+        cl_int render();
+        void swapBuffer();
+        void destroy();
+
         void setKeyListener(KeyListener *keyListener);
         void setMouseListener(MouseListener *mouseListener);
+
+        //getter
+        cl::Kernel* getKernel();
+        cl::Context* getContext();
+        cl::CommandQueue* getQueue();
 
 
     public: //static

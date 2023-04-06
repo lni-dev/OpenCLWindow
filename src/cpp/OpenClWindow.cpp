@@ -109,8 +109,7 @@ namespace linusdev {
     void OpenClWindow::show() {
         glfwShowWindow(window);
 
-        cl_int fwidth, fheight;
-        glfwGetFramebufferSize(window, &fwidth, &fheight);
+        glfwGetFramebufferSize(window, &frameBufferWidth, &frameBufferHeight);
 
         glGenFramebuffers(1, &frameBufferId);
         glBindFramebuffer(GL_FRAMEBUFFER , frameBufferId);
@@ -118,7 +117,7 @@ namespace linusdev {
         glGenRenderbuffers(1, &renderBufferId );
         glBindRenderbuffer(GL_RENDERBUFFER, renderBufferId);
 
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, fwidth, fheight);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, frameBufferWidth, frameBufferHeight);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBufferId);
         glClearColor(0, 0, 0, 1);
 
@@ -130,47 +129,59 @@ namespace linusdev {
         if(err) throw std::runtime_error("Error while setting kernel arg. Code: " + std::to_string(err));
 
 
-        err = kernel->setArg(1, (cl_int2){fwidth, fheight});
+        err = kernel->setArg(1, (cl_int2){frameBufferWidth, frameBufferHeight});
         if(err) throw std::runtime_error("Error while setting kernel arg. Code: " + std::to_string(err));
 
+        sharedGLObjects = new std::vector <cl::Memory>(1, *sharedRenderBuffer);
 
-        while (!glfwWindowShouldClose(window))
-        {
+        render();
+        swapBuffer();
+    }
 
-            glClear(GL_COLOR_BUFFER_BIT);
-            glFinish();
+    bool OpenClWindow::checkIfWindowShouldClose() {
+        glfwPollEvents();
+        return glfwWindowShouldClose(window);
+    }
 
-            const std::vector <cl::Memory> mems(1, *sharedRenderBuffer);
-            queue->enqueueAcquireGLObjects(&mems);
-            queue->finish();
+    cl_int OpenClWindow::render() {
+        int err;
+        err = queue->enqueueAcquireGLObjects(sharedGLObjects);
+        err |= queue->finish();
 
-            cl::Event event;
-            err = queue->enqueueNDRangeKernel(*kernel, cl::NullRange, cl::NDRange(fwidth, fheight), cl::NullRange, nullptr, &event);
-            if(err) throw std::runtime_error("Error enqueueNDRangeKernel. Code: " + std::to_string(err));
-            event.wait();
+        cl::Event event;
+        err |= queue->enqueueNDRangeKernel(*kernel, cl::NullRange, cl::NDRange(frameBufferWidth, frameBufferHeight), cl::NullRange, nullptr, &event);
+        event.wait();
 
-            queue->enqueueReleaseGLObjects(&mems);
-            queue->flush();
-            queue->finish();
+        err |= queue->enqueueReleaseGLObjects(sharedGLObjects);
+        err |= queue->flush();
+        err |= queue->finish();
 
-            // We are going to blit into the window (default framebuffer)
-            glBindFramebuffer (GL_DRAW_FRAMEBUFFER, 0);
-            glDrawBuffer      (GL_BACK);              // Use backbuffer as color dst.
+        return err;
+    }
 
-            // Read from your FBO
-            glBindFramebuffer (GL_READ_FRAMEBUFFER, frameBufferId);
-            glReadBuffer      (GL_COLOR_ATTACHMENT0); // Use Color Attachment 0 as color src.
+    void OpenClWindow::swapBuffer() {
+        glClear(GL_COLOR_BUFFER_BIT);
+        glFinish();
 
-            // Copy the color buffer from your FBO to the default framebuffer
-            glBlitFramebuffer (0,0, fwidth, fheight, 0,0, fwidth, fheight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer (GL_DRAW_FRAMEBUFFER, 0);
+        glDrawBuffer      (GL_BACK);              // Use backbuffer as color dst.
 
-            glfwSwapBuffers(window);
-            glfwPollEvents();
-        }
+        // Read from your FBO
+        glBindFramebuffer (GL_READ_FRAMEBUFFER, frameBufferId);
+        glReadBuffer      (GL_COLOR_ATTACHMENT0); // Use Color Attachment 0 as color src.
 
+        // Copy the color buffer from your FBO to the default framebuffer
+        glBlitFramebuffer (0,0, frameBufferWidth, frameBufferHeight, 0,0, frameBufferWidth, frameBufferHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        glfwSwapBuffers(window);
+    }
+
+    void OpenClWindow::destroy() {
         glfwDestroyWindow(window);
         glfwTerminate();
     }
+
+
 
     void OpenClWindow::initOpenGL() {
 
@@ -297,19 +308,32 @@ namespace linusdev {
         delete queue;
         delete sharedRenderBuffer;
         delete kernel;
+        delete sharedGLObjects;
     }
+
+    //Getter
+    cl::Kernel* OpenClWindow::getKernel() {
+        return kernel;
+    }
+
+    cl::Context* OpenClWindow::getContext() {
+        return context;
+    }
+
+    cl::CommandQueue* OpenClWindow::getQueue() {
+        return queue;
+    }
+
 
     //Setter
 
-    void OpenClWindow::setKeyListener(KeyListener *keyListener) {
+    void OpenClWindow::setKeyListener(KeyListener* keyListener) {
         OpenClWindow::keyListener = keyListener;
     }
 
-    void OpenClWindow::setMouseListener(MouseListener *mouseListener) {
+    void OpenClWindow::setMouseListener(MouseListener* mouseListener) {
         OpenClWindow::mouseListener = mouseListener;
     }
-
-
 
 
 }
