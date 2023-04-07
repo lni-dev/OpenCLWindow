@@ -260,11 +260,19 @@ namespace linusdev {
 
     }
 
-    int OpenClWindow::setKernelArg(int index, size_t size, void *pointer) {
+    cl_int OpenClWindow::setKernelArg(int index, size_t size, void *pointer) {
         if(!kernel)
             throw std::runtime_error("Call setProgramCode(...) before setKernelArg(...).");
 
+
         return kernel->setArg(index, size, pointer);
+    }
+
+    cl_int OpenClWindow::setKernelArg(int index, const cl::Buffer &value) {
+        if(!kernel)
+            throw std::runtime_error("Call setProgramCode(...) before setKernelArg(...).");
+
+        return kernel->setArg(index, value);
     }
 
     //listener

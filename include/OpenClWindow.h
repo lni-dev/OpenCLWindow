@@ -82,7 +82,8 @@ namespace linusdev {
 
         void setProgramCode(const std::basic_string<char>& src);
 
-        int setKernelArg(int index, size_t size, void* pointer);
+        cl_int setKernelArg(int index, size_t size, void* pointer);
+       cl_int setKernelArg(int index, const cl::Buffer& value);
 
         void show();
 
