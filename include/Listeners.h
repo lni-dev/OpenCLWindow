@@ -13,18 +13,29 @@
 // limitations under the License.
 
 //
-// Created by Linus on 01/04/2023.
+// Created by Linus on 10/04/2023.
 //
 
-#ifndef OPENCLWINDOWJAVA_KEYLISTENER_H
-#define OPENCLWINDOWJAVA_KEYLISTENER_H
+#ifndef OPENCLWINDOWJAVA_CHARLISTENER_H
+#define OPENCLWINDOWJAVA_CHARLISTENER_H
 
 namespace linusdev {
+    class CharListener {
+    public:
+        virtual void onChar(unsigned int codepoint) {};
+    };
+
     class KeyListener {
     public:
         virtual void onKey(int key, int scancode, int action, int mods) {};
 
     };
+
+    class MouseListener {
+    public:
+        virtual void onMouseCursor(double xpos, double ypos) {};
+        virtual void onMouseButton(int button, int action, int mods) {};
+    };
 }
 
-#endif //OPENCLWINDOWJAVA_KEYLISTENER_H
+#endif //OPENCLWINDOWJAVA_CHARLISTENER_H

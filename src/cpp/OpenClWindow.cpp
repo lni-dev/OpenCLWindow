@@ -217,6 +217,7 @@ namespace linusdev {
         glfwSetKeyCallback(window, onKeyStatic);
         glfwSetMouseButtonCallback(window, onMouseButtonStatic);
         glfwSetCursorPosCallback(window, onMouseCursorStatic);
+        glfwSetCharCallback(window, onCharStatic);
     }
 
 
@@ -300,6 +301,12 @@ namespace linusdev {
             win->mouseListener->onMouseCursor(xpos, ypos);
     }
 
+    void OpenClWindow::onCharStatic(GLFWwindow *window, unsigned int codepoint) {
+        auto win = (OpenClWindow*) glfwGetWindowUserPointer(window);
+        if(win->charListener != nullptr)
+            win->charListener->onChar(codepoint);
+    }
+
     //Destructor
 
     OpenClWindow::~OpenClWindow() {
@@ -341,6 +348,10 @@ namespace linusdev {
 
     void OpenClWindow::setMouseListener(MouseListener* mouseListener) {
         OpenClWindow::mouseListener = mouseListener;
+    }
+
+    void OpenClWindow::setCharListener(CharListener* charListener) {
+        OpenClWindow::charListener = charListener;
     }
 
 

@@ -26,8 +26,7 @@
 #include "glad/gl.h"
 #include <GLFW/glfw3.h>
 
-#include "KeyListener.h"
-#include "MouseListener.h"
+#include "Listeners.h"
 
 namespace linusdev {
     class OpenClWindow {
@@ -67,6 +66,7 @@ namespace linusdev {
         //listeners
         linusdev::KeyListener* keyListener = nullptr;
         linusdev::MouseListener* mouseListener = nullptr;
+        linusdev::CharListener* charListener = nullptr;
 
 
     public:
@@ -94,6 +94,7 @@ namespace linusdev {
 
         void setKeyListener(KeyListener *keyListener);
         void setMouseListener(MouseListener *mouseListener);
+        void setCharListener(CharListener* charListener);
 
         //getter
         cl::Kernel* getKernel();
@@ -106,6 +107,7 @@ namespace linusdev {
         static void onKeyStatic(GLFWwindow* window, int key, int scancode, int action, int mods);
         static void onMouseButtonStatic(GLFWwindow* window, int button, int action, int mods);
         static void onMouseCursorStatic(GLFWwindow* window, double xpos, double ypos);
+        static void onCharStatic(GLFWwindow* window, unsigned int codepoint);
     };
 }
 
