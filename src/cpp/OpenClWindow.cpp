@@ -70,6 +70,8 @@ namespace linusdev {
         if (device == nullptr)
             throw std::runtime_error("No OpenCL Device for the platform" + platform->getInfo<CL_PLATFORM_VERSION>());
 
+        std::cout << device->getInfo<CL_DEVICE_EXTENSIONS>() << std::endl;
+
         programs = new std::vector<cl::Program *>();
 
         //Create OpenCL shared context
@@ -236,12 +238,12 @@ namespace linusdev {
         glfwMaximizeWindow(window);
     }
 
-    void OpenClWindow::setProgramCode(const std::basic_string<char>& src) {
+    void OpenClWindow::setProgramCode(const std::basic_string<char>& src, const char* options) {
         auto* program = new cl::Program(*context, src);
         programs->push_back(program);
 
         try {
-            cl_int result = program->build( *device);
+            cl_int result = program->build( *device, options);
             if (result) throw std::runtime_error("Error during compilation! (" + std::to_string(result) + ")");
         }
         catch (...) {

@@ -80,7 +80,7 @@ namespace linusdev {
 
         void setBorderlessFullscreen();
 
-        void setProgramCode(const std::basic_string<char>& src);
+        void setProgramCode(const std::basic_string<char>& src,  const char* options);
 
         cl_int setKernelArg(int index, size_t size, void* pointer);
        cl_int setKernelArg(int index, const cl::Buffer& value);
