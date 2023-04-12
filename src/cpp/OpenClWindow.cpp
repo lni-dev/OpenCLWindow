@@ -341,6 +341,10 @@ namespace linusdev {
         return queue;
     }
 
+    GLFWwindow* OpenClWindow::getGLFWWindow() {
+        return window;
+    }
+
 
     //Setter
 

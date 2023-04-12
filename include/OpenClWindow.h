@@ -83,7 +83,7 @@ namespace linusdev {
         void setProgramCode(const std::basic_string<char>& src,  const char* options);
 
         cl_int setKernelArg(int index, size_t size, void* pointer);
-       cl_int setKernelArg(int index, const cl::Buffer& value);
+        cl_int setKernelArg(int index, const cl::Buffer& value);
 
         void show();
 
@@ -100,6 +100,8 @@ namespace linusdev {
         cl::Kernel* getKernel();
         cl::Context* getContext();
         cl::CommandQueue* getQueue();
+
+        GLFWwindow* getGLFWWindow();
 
 
     public: //static
