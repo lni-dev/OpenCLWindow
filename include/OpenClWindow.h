@@ -38,7 +38,7 @@ namespace linusdev {
 
         cl::Context *context = nullptr;
         cl::CommandQueue *queue = nullptr;
-        std::vector<cl::Program *> *programs = nullptr;
+        cl::Program *program = nullptr;
         cl::Kernel *kernel = nullptr;
         cl::BufferRenderGL *sharedRenderBuffer = nullptr;
 
@@ -53,8 +53,8 @@ namespace linusdev {
         //GL and GLFW stuff
         GLFWwindow* window = nullptr;
 
-        GLuint frameBufferId;
-        GLuint renderBufferId;
+        GLuint frameBufferId = 0;
+        GLuint renderBufferId = 0;
 
         void initOpenGL();
         bool openGLInit = false;
@@ -81,6 +81,9 @@ namespace linusdev {
         void setBorderlessFullscreen();
 
         void setProgramCode(const std::basic_string<char>& src,  const char* options);
+
+        cl_int createSharedRenderBuffer();
+        cl_int setBaseKernelArgs();
 
         cl_int setKernelArg(int index, size_t size, void* pointer);
         cl_int setKernelArg(int index, const cl::Buffer& value);

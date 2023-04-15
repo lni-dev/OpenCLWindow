@@ -25,8 +25,8 @@
 #elifdef UNIX
     //TODO:
 #else
-    #include <windef.h>
-    #include <wingdi.h>
+    #include <windows.h>
+    //#include <wingdi.h>
 #endif
 
 namespace linusdev {
@@ -36,7 +36,6 @@ namespace linusdev {
     }
 
     void OpenClWindow::initOpenCL() {
-
         if(openCLInit) return;
         openCLInit = true;
 
@@ -62,17 +61,10 @@ namespace linusdev {
         std::vector<cl::Device> devices;
         platform->getDevices(CL_DEVICE_TYPE_GPU, &devices);
 
-
-        for (cl::Device &d: devices) {
-            device = &d;
-        }
-
-        if (device == nullptr)
+        if (devices.empty())
             throw std::runtime_error("No OpenCL Device for the platform" + platform->getInfo<CL_PLATFORM_VERSION>());
 
-        std::cout << device->getInfo<CL_DEVICE_EXTENSIONS>() << std::endl;
-
-        programs = new std::vector<cl::Program *>();
+        device = new cl::Device(devices[0]);
 
         //Create OpenCL shared context
         #ifdef MAC
@@ -101,15 +93,20 @@ namespace linusdev {
         #endif
 
         int err;
-        context = new cl::Context(*device, properties,NULL, NULL, &err);
-        if(err) throw std::runtime_error("Error while creating Context: " + std::to_string(err));
+        context = new cl::Context(*device, properties,nullptr, nullptr, &err);
+        if(err) {
+            throw std::runtime_error("Error while creating Context: " + std::to_string(err));
+        }
 
         //Create command queue;
         queue = new cl::CommandQueue(*context, *device);
     }
 
-    void OpenClWindow::show() {
-        glfwShowWindow(window);
+    cl_int OpenClWindow::createSharedRenderBuffer() {
+        delete sharedRenderBuffer;
+        delete sharedGLObjects;
+        glDeleteFramebuffers(1, &frameBufferId);
+        glDeleteRenderbuffers(1, &renderBufferId);
 
         glfwGetFramebufferSize(window, &frameBufferWidth, &frameBufferHeight);
 
@@ -125,16 +122,53 @@ namespace linusdev {
 
         int err;
         sharedRenderBuffer = new cl::BufferRenderGL(*context, CL_MEM_WRITE_ONLY, renderBufferId, &err);
-        if(err) throw std::runtime_error("Error while creating shared Render buffer. Code: " + std::to_string(err));
-
-        err = kernel->setArg(0, *sharedRenderBuffer);
-        if(err) throw std::runtime_error("Error while setting kernel arg. Code: " + std::to_string(err));
-
-
-        err = kernel->setArg(1, (cl_int2){frameBufferWidth, frameBufferHeight});
-        if(err) throw std::runtime_error("Error while setting kernel arg. Code: " + std::to_string(err));
-
         sharedGLObjects = new std::vector <cl::Memory>(1, *sharedRenderBuffer);
+        return err;
+    }
+
+    void OpenClWindow::setProgramCode(const std::basic_string<char>& src, const char* options) {
+        delete program;
+        delete kernel;
+        program = nullptr;
+        kernel = nullptr;
+
+        program = new cl::Program(*context, src);
+        try {
+            cl::Device& d = *device;
+            cl_int result = program->build(d, options);
+            if (result) throw std::runtime_error("Error during compilation! (" + std::to_string(result) + ")");
+        }
+        catch (...) {
+            // Print build info for all devices
+            cl_int buildErr = CL_SUCCESS;
+            auto buildInfo = program->getBuildInfo<CL_PROGRAM_BUILD_LOG>(&buildErr);
+
+            std::stringstream ss;
+            for (auto &pair : buildInfo) {
+                ss << pair.second << "\n\n";
+            }
+
+            throw std::runtime_error("Error while building:\n " + ss.str());
+        }
+
+        kernel = new cl::Kernel(*program, "render");
+    }
+
+    cl_int OpenClWindow::setBaseKernelArgs() {
+        int err = kernel->setArg(0, *sharedRenderBuffer);
+        if(err) return err;
+        cl_int2 fbs = cl_int2();
+        fbs.x = frameBufferWidth;
+        fbs.y = frameBufferHeight;
+        err = kernel->setArg(1, fbs);
+        return err;
+    }
+
+    void OpenClWindow::show() {
+        glfwShowWindow(window);
+
+        if (sharedRenderBuffer == nullptr)
+            throw std::runtime_error("call createSharedRenderBuffer() first.");
 
         render();
         swapBuffer();
@@ -151,6 +185,7 @@ namespace linusdev {
         err |= queue->finish();
 
         cl::Event event;
+
         err |= queue->enqueueNDRangeKernel(*kernel, cl::NullRange, cl::NDRange(frameBufferWidth, frameBufferHeight), cl::NullRange, nullptr, &event);
         event.wait();
 
@@ -238,31 +273,6 @@ namespace linusdev {
         glfwMaximizeWindow(window);
     }
 
-    void OpenClWindow::setProgramCode(const std::basic_string<char>& src, const char* options) {
-        auto* program = new cl::Program(*context, src);
-        programs->push_back(program);
-
-        try {
-            cl_int result = program->build( *device, options);
-            if (result) throw std::runtime_error("Error during compilation! (" + std::to_string(result) + ")");
-        }
-        catch (...) {
-            // Print build info for all devices
-            cl_int buildErr = CL_SUCCESS;
-            auto buildInfo = program->getBuildInfo<CL_PROGRAM_BUILD_LOG>(&buildErr);
-
-            std::stringstream ss;
-            for (auto &pair : buildInfo) {
-                ss << pair.second << "\n\n";
-            }
-
-            throw std::runtime_error("Error while building:\n " + ss.str());
-        }
-
-        kernel = new cl::Kernel(*program, "render");
-
-    }
-
     cl_int OpenClWindow::setKernelArg(int index, size_t size, void *pointer) {
         if(!kernel)
             throw std::runtime_error("Call setProgramCode(...) before setKernelArg(...).");
@@ -312,20 +322,20 @@ namespace linusdev {
     //Destructor
 
     OpenClWindow::~OpenClWindow() {
-
+        delete device;
+        device = nullptr;
         delete context;
-        if(programs) {
-            for(cl::Program* prg : *programs) {
-                delete prg;
-            }
-
-            delete programs;
-        }
-
+        context = nullptr;
+        delete program;
+        program = nullptr;
         delete queue;
+        queue = nullptr;
         delete sharedRenderBuffer;
+        sharedRenderBuffer = nullptr;
         delete kernel;
+        kernel = nullptr;
         delete sharedGLObjects;
+        sharedGLObjects = nullptr;
     }
 
     //Getter
